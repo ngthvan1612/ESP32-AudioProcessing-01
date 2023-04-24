@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <SPIFFS.h>
 #include "Wav.h"
+#include "AsyncUDP.h"
 #include <WebServer.h>
 
 #define I2S_WS 15
@@ -119,9 +120,36 @@ void record_and_save_wav() {
   //LOOP: server.handleClient();
 }
 
+AsyncUDP udp;
+
+int counter = 0;
+
 void setup() {
+  uint8_t buffer[16];
+
   Serial.begin(115200);
   while (!Serial);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin("Arduino-71", "12345678abc");
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.println("WiFi Failed");
+      while(1) {
+          delay(1000);
+      }
+  }
+
+  if (udp.connect(IPAddress(192, 168, 225, 91), 1234)) {
+    while (true) {
+      Serial.println("Connect to server 1234 ok");
+      AsyncUDPMessage message;
+      buffer[0] = (uint8_t)(++counter);
+      buffer[15] = (uint8_t)(++counter);
+      message.write(buffer, 16);
+      udp.send(message);
+      delay(1000);
+    }
+  }
 }
 
 void loop() {
