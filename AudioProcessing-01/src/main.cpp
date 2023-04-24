@@ -82,11 +82,8 @@ void i2s_adc_dac(void* arg) {
   vTaskDelete(NULL);
 }
 
-WebServer server(80);
-
-void setup() {
-  Serial.begin(115200);
-  while (!Serial);
+void record_and_save_wav() {
+  WebServer server(80);
 
   i2s_init();
 
@@ -106,7 +103,7 @@ void setup() {
   }
   Serial.println("\nIP = " + WiFi.localIP().toString());
 
-  server.on("/download", []() {{
+  server.on("/download", [&]() {{
     File file = SPIFFS.open("/record.wav", "r");
     server.sendHeader("Content-Type", "text/text");
     server.sendHeader("Content-Disposition", "attachment; filename=ahihi.wav");
@@ -118,8 +115,14 @@ void setup() {
   xTaskCreate(i2s_adc_dac, "vidu_i2s_adc_dac", 1024 * 2, NULL, 5, NULL);
 
   server.begin();
+
+  //LOOP: server.handleClient();
+}
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
 }
 
 void loop() {
-  server.handleClient();
 }
