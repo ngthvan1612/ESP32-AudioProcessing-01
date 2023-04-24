@@ -178,7 +178,7 @@ void i2s_adc_dac_udp(void* arg) {
     //for (int i = 0; i < I2S_READ_LEN; i += 1024) {
     AsyncUDPMessage message;
     //message.write(i == 0);
-    message.write(flash_write_buff, 1024);
+    message.write(flash_write_buff, I2S_READ_LEN);
     udp.send(message);
     //}
     //message.~AsyncUDPMessage();
