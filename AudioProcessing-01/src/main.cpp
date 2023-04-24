@@ -7,13 +7,22 @@
 #include "AsyncUDP.h"
 #include <WebServer.h>
 
+class FixedAsyncUDPMessage : public AsyncUDPMessage {
+public:
+  FixedAsyncUDPMessage(size_t size=CONFIG_TCP_MSS) {
+    this->_index = 0;
+    this->_size = size;
+    this->_buffer = (uint8_t *)malloc(size);
+  }
+};
+
 #define I2S_WS 15
 #define I2S_SD 13
 #define I2S_SCK 2
 #define I2S_PORT I2S_NUM_0
 #define I2S_SAMPLE_RATE (16000)
 #define I2S_SAMPLE_BITS (16)
-#define I2S_READ_LEN (16 * 1024)
+#define I2S_READ_LEN (1024)
 #define RECORD_TIME (10)
 #define I2S_CHANNEL_NUM (1)
 #define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_BITS * I2S_SAMPLE_RATE / 8 * RECORD_TIME)
@@ -124,7 +133,7 @@ AsyncUDP udp;
 
 int counter = 0;
 
-void setup() {
+void udp_client_test() {
   uint8_t buffer[16];
 
   Serial.begin(115200);
@@ -152,5 +161,62 @@ void setup() {
   }
 }
 
+const int MAXIMUM_MESSAGE_LENGTH = 0;
+
+void i2s_adc_dac_udp(void* arg) {
+  int i2s_read_len = I2S_READ_LEN;
+  int flash_wr_size = 0;
+  size_t bytes_read;
+  char* i2s_read_buff = (char*)calloc(i2s_read_len, sizeof(char));
+  uint8_t* flash_write_buff = (uint8_t*)calloc(i2s_read_len, sizeof(char));
+
+  Serial.println("Recording started...");
+  while (1 < 2) {
+    i2s_read(I2S_PORT, (void*)i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
+    i2s_adc_data_scale(flash_write_buff, (uint8_t*)i2s_read_buff, i2s_read_len);
+
+    //for (int i = 0; i < I2S_READ_LEN; i += 1024) {
+    AsyncUDPMessage message;
+    //message.write(i == 0);
+    message.write(flash_write_buff, 1024);
+    udp.send(message);
+    //}
+    //message.~AsyncUDPMessage();
+
+    flash_wr_size += bytes_read;
+    Serial.printf("Sound recording %d bytes\n", flash_wr_size);
+  }
+
+  free(i2s_read_buff);
+  free(flash_write_buff);
+  vTaskDelete(NULL);
+}
+
+void setup() {
+  i2s_init();
+
+  Serial.begin(115200);
+  while (!Serial);
+
+  Serial.print("Connecting wifi...");
+  WiFi.begin("Arduino-71", "12345678abc");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(200);
+  }
+
+  Serial.println("\nConnected wifi, ip = " + WiFi.localIP().toString());
+
+  while (!udp.connect(IPAddress(192, 168, 225, 91), 1234)) {
+    Serial.println("Connecting to udp server ...");
+    delay(200);
+  }
+
+  Serial.println("Connect to udp server ok");
+
+  xTaskCreate(i2s_adc_dac_udp, "vidu_i2s_adc_dac", 8128 * 2, NULL, 5, NULL);
+}
+
 void loop() {
+
 }
