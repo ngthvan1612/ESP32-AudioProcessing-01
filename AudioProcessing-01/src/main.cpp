@@ -148,7 +148,7 @@ void udp_client_test() {
       }
   }
 
-  if (udp.connect(IPAddress(192, 168, 225, 91), 1234)) {
+  if (udp.connect(IPAddress(192, 168, 137, 150), 1234)) {
     while (true) {
       Serial.println("Connect to server 1234 ok");
       AsyncUDPMessage message;
@@ -207,7 +207,7 @@ void setup() {
 
   Serial.println("\nConnected wifi, ip = " + WiFi.localIP().toString());
 
-  while (!udp.connect(IPAddress(192, 168, 225, 91), 1234)) {
+  while (!udp.connect(IPAddress(192, 168, 32, 91), 1234)) {
     Serial.println("Connecting to udp server ...");
     delay(200);
   }
